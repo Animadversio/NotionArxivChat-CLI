@@ -1,0 +1,10 @@
+requests
+notion_client
+arxiv
+questionary
+langchain
+openai
+chromadb
+tiktoken
+pypdf
+beautifulsoup4
