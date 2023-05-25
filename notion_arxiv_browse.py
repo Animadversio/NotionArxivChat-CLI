@@ -4,14 +4,30 @@ from notion_tools import print_entries
 import arxiv
 import questionary
 import textwrap
+import yaml
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory, FileHistory
 
 history = FileHistory("notion_arxiv_history.txt")
 session = PromptSession(history=history)
 
-database_id = "d3e3be7fc96a45de8e7d3a78298f9ccd"
-notion = Client(auth=os.environ["NOTION_TOKEN"])
+with open("config.yaml") as file:
+    config = yaml.load(file, Loader=yaml.FullLoader)
+
+if "NOTION_TOKEN" in os.environ:
+    notion = Client(auth=os.environ["NOTION_TOKEN"])
+    database_id = config["database_id"]
+    # notion.databases.query(database_id, filter={"property": "Name", "text": {"is_not_empty": True}}, )
+    if database_id == "PUT_YOUR_DATABASE_ID_HERE":
+        print("Please set the database_id in config.yaml.")
+        save2notion = False
+    else:
+        save2notion = True
+else:
+    print("Please set the NOTION_TOKEN environment variable.")
+    save2notion = False
+
+MAX_RESULTS_PER_PAGE = int(config["MAX_RESULTS_PER_PAGE"])
 
 
 def arxiv_entry2page_blocks(paper: arxiv.arxiv.Result):
@@ -135,13 +151,12 @@ def add_to_notion(paper: arxiv.arxiv.Result):
 # Ctrl-C in the navigation loop to exit and start a new query
 # Ctrl-C in the query prompt to exit the program
 # Up/Down to navigate through prompts and query history
-MAX_RESULTS = 35
 while True:
     try:
         cnt = 0
         query = session.prompt("Enter arXiv ID or query str: ", multiline=False)
         search_obj = arxiv.Search(query, )
-        results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS, offset=cnt)
+        results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS_PER_PAGE, offset=cnt)
         if len(results_arxiv) == 0:
             print("No results found.")
             continue
@@ -150,7 +165,10 @@ while True:
             print_arxiv_entry(paper)
             # Add the entry if confirmed
             if questionary.confirm("Add this entry?").ask():
-                add_to_notion(paper)
+                if save2notion:
+                    add_to_notion(paper)
+                else:
+                    print("Not adding to notion.")
         elif len(results_arxiv) > 1:
             # multiple results found, complex logic to navigate through results
             last_selection = None  # last selected result to highlight
@@ -158,7 +176,7 @@ while True:
                 # looping of results and pages, navigating through search results
                 print("Multiple results found. Please select one:")
                 choices = [f"{i + 1}: [{paper.entry_id.split('/')[-1]}] {paper.title} " for i, paper in enumerate(results_arxiv)]
-                if len(results_arxiv) == MAX_RESULTS:
+                if len(results_arxiv) == MAX_RESULTS_PER_PAGE:
                     choices.append("0: Next page")
                 if cnt > 0:
                     choices.append("-1: Prev page")
@@ -166,12 +184,12 @@ while True:
                                                else choices[last_selection]).ask()
                 selection = int(selection.split(":")[0])
                 if selection == 0:
-                    cnt += MAX_RESULTS
-                    results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS, offset=cnt)
+                    cnt += MAX_RESULTS_PER_PAGE
+                    results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS_PER_PAGE, offset=cnt)
                     continue
                 if selection == -1:
-                    cnt -= MAX_RESULTS
-                    results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS, offset=cnt)
+                    cnt -= MAX_RESULTS_PER_PAGE
+                    results_arxiv = fetch_K_results(search_obj, K=MAX_RESULTS_PER_PAGE, offset=cnt)
                     continue
                 else:
                     paper = results_arxiv[int(selection) - 1]
@@ -179,7 +197,10 @@ while True:
                     print_arxiv_entry(paper)
                     if questionary.confirm("Add this entry?").ask():
                         # Add the entry if confirmed
-                        add_to_notion(paper)
+                        if save2notion:
+                            add_to_notion(paper)
+                        else:
+                            print("Not adding to notion.")
                     # if questionary.confirm("Back to the list").ask():
                     #     continue
                     # else:

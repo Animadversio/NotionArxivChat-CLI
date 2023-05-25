@@ -6,7 +6,7 @@ import questionary
 import textwrap
 from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory, FileHistory
-
+import yaml
 import requests
 from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
 from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
@@ -16,18 +16,36 @@ from langchain.chat_models import ChatOpenAI
 from langchain.callbacks import get_openai_callback
 from notion_tools import QA_notion_blocks, clean_metadata, print_entries, save_qa_history, load_qa_history, print_qa_result
 
+# file to save the arxiv query history
 history = FileHistory("notion_arxiv_history.txt")
 session = PromptSession(history=history)
-
+# file to save the Q&A chat history
 chathistory = FileHistory("qa_chat_history.txt")
 chatsession = PromptSession(history=chathistory)
 
-database_id = "d3e3be7fc96a45de8e7d3a78298f9ccd"
-notion = Client(auth=os.environ["NOTION_TOKEN"])
+with open("config.yaml") as file:
+    config = yaml.load(file, Loader=yaml.FullLoader)
 
-MAX_RESULTS_PER_PAGE = 35
-PDF_DOWNLOAD_ROOT = r"E:\OneDrive - Harvard University\openai-emb-database\arxiv_pdf"
-EMBED_ROOTDIR = r"E:\OneDrive - Harvard University\openai-emb-database\Embed_data"
+if "NOTION_TOKEN" in os.environ:
+    notion = Client(auth=os.environ["NOTION_TOKEN"])
+    database_id = config["database_id"]
+    # notion.databases.query(database_id, filter={"property": "Name", "text": {"is_not_empty": True}}, )
+    if database_id == "PUT_YOUR_DATABASE_ID_HERE":
+        print("Please set the database_id in config.yaml.")
+        save2notion = False
+    else:
+        save2notion = True
+else:
+    print("Please set the NOTION_TOKEN environment variable.")
+    save2notion = False
+
+MAX_RESULTS_PER_PAGE = int(config["MAX_RESULTS_PER_PAGE"])
+PDF_DOWNLOAD_ROOT = config["PDF_DOWNLOAD_ROOT"]
+EMBED_ROOTDIR = config["EMBED_ROOTDIR"]
+os.makedirs(PDF_DOWNLOAD_ROOT, exist_ok=True)
+os.makedirs(EMBED_ROOTDIR, exist_ok=True)
+print(f"PDFs will be downloaded to {PDF_DOWNLOAD_ROOT}")
+print(f"Computed embeddings will be saved to {EMBED_ROOTDIR}")
 
 
 def arxiv_entry2page_blocks(paper: arxiv.arxiv.Result):
@@ -260,6 +278,8 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
         print(f"Prompt Tokens: {cb.prompt_tokens}")
         print(f"Completion Tokens: {cb.completion_tokens}")
         print(f"Total Cost (USD): ${cb.total_cost}")
+
+
 # query = "2106.05963"
 # query = "au:Yann LeCun"
 # Logic:

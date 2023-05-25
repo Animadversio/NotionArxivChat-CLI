@@ -7,8 +7,9 @@ Resulting Notion database:
 ![](media/Notion_record.png)
 
 ## Usage
-* `notion_arxiv_browse.py` - browse Arxiv papers in a terminal, save to Notion database (if notion API key is provided)
-* `notion_arxiv_browse_chat.py` - more powerful version of `notion_arxiv_browse` that allows you to download and chat with the papers and save the chat history to Notion database (if notion API key is provided)
+* `arxiv_browser.py` - browse Arxiv papers in a terminal, search with arxiv query string; read abstracts. 
+* `notion_arxiv_browse.py` - browse Arxiv papers in a terminal, save to Notion database (if notion API key and database id are provided)
+* `notion_arxiv_browse_chat.py` - more powerful version of `notion_arxiv_browse` that allows you to download and chat with the papers and save the chat history to Notion database (if notion API key and database id are provided)
 
 ## Requirements
 
