@@ -30,7 +30,7 @@ if "NOTION_TOKEN" in os.environ:
     notion = Client(auth=os.environ["NOTION_TOKEN"])
     database_id = config["database_id"]
     # notion.databases.query(database_id, filter={"property": "Name", "text": {"is_not_empty": True}}, )
-    if database_id == "PUT_YOUR_DATABASE_ID_HERE":
+    if database_id == "PUT_YOUR_DATABASE_ID_HERE" or database_id == "" or database_id == "None":
         print("Please set the database_id in config.yaml.")
         save2notion = False
     else:
