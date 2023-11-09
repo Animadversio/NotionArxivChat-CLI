@@ -211,7 +211,7 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
     qa_path = embed_persist_dir + "_qa_history"
     os.makedirs(qa_path, exist_ok=True)
     # create embeddings
-    embeddings = OpenAIEmbeddings()
+    embeddings = OpenAIEmbeddings(model_name="text-embedding-ada-002")
     if os.path.exists(embed_persist_dir):
         print("Loading embeddings from", embed_persist_dir)
         vectordb = Chroma(persist_directory=embed_persist_dir, embedding_function=embeddings)
@@ -232,13 +232,14 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
                                          persist_directory=embed_persist_dir, )
         vectordb.persist()
 
+    model_version = questionary.select("Select ChatGPT Model", choices=["gpt-3.5-turbo", "gpt-4-1106-preview"], default="gpt-3.5-turbo").ask()
     chat_temperature = questionary.text("Sampling temperature for ChatGPT?", default="0.3").ask()
     chat_temperature = float(chat_temperature)
     # ref_maxlen = questionary.text("Max length of reference document?", default="300").ask()
     ref_maxlen = 200
     pdf_qa_new = ConversationalRetrievalChain.from_llm(
-        ChatOpenAI(temperature=chat_temperature, model_name="gpt-3.5-turbo"),
-        vectordb.as_retriever(), return_source_documents=True, max_tokens_limit=4000)
+        ChatOpenAI(temperature=chat_temperature, model_name=model_version),
+        vectordb.as_retriever(), return_source_documents=True, max_tokens_limit=2500)
 
     # Q&A loop with ChatOpenAI
     with get_openai_callback() as cb:
