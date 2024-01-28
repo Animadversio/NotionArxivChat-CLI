@@ -8,12 +8,20 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.history import InMemoryHistory, FileHistory
 import yaml
 import requests
-from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
-from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
-from langchain.vectorstores import Chroma  # for the vectorization part
 from langchain.chains import ConversationalRetrievalChain
-from langchain.chat_models import ChatOpenAI
-from langchain.callbacks import get_openai_callback
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+try:
+    from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
+    from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
+    from langchain.vectorstores import Chroma  # for the vectorization part
+    from langchain.chat_models import ChatOpenAI
+    from langchain.callbacks import get_openai_callback
+except:
+    from langchain_community.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader
+    from langchain_community.embeddings import OpenAIEmbeddings
+    from langchain_community.vectorstores import Chroma
+    from langchain_community.chat_models import ChatOpenAI
+    from langchain_community.callbacks import get_openai_callback
 from notion_tools import QA_notion_blocks, clean_metadata, print_entries, save_qa_history, load_qa_history, print_qa_result
 
 # file to save the arxiv query history
@@ -46,7 +54,8 @@ os.makedirs(PDF_DOWNLOAD_ROOT, exist_ok=True)
 os.makedirs(EMBED_ROOTDIR, exist_ok=True)
 print(f"PDFs will be downloaded to {PDF_DOWNLOAD_ROOT}")
 print(f"Computed embeddings will be saved to {EMBED_ROOTDIR}")
-
+default_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=2000, chunk_overlap=200)
 
 def arxiv_entry2page_blocks(paper: arxiv.arxiv.Result):
     title = paper.title
@@ -169,7 +178,7 @@ def add_to_notion(paper: arxiv.arxiv.Result):
             return page_id, page
 
 
-def arxiv_paper_download(arxiv_id, pdf_download_root=""):
+def arxiv_paper_download(arxiv_id, pdf_download_root="", text_splitter=default_splitter):
     """Downloads the arxiv paper with the given arxiv_id, and returns the path to the downloaded pdf file."""
     ar5iv_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}"
     pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
@@ -183,7 +192,7 @@ def arxiv_paper_download(arxiv_id, pdf_download_root=""):
         print("Saved to", join(pdf_download_root, f"{arxiv_id}.html"))
         loader = BSHTMLLoader(join(pdf_download_root, f"{arxiv_id}.html"),
                               open_encoding="utf8", bs_kwargs={"features": "html.parser"})
-        pages = loader.load_and_split()
+        pages = loader.load_and_split(text_splitter=text_splitter)
     else:
         # if redirected, then ar5iv page does not exist
         # save pdf instead
@@ -204,14 +213,14 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
 
     if pages is None:
         print("No pages provided, downloading paper from arxiv...")
-        pages = arxiv_paper_download(arxiv_id)
+        pages = arxiv_paper_download(arxiv_id, pdf_download_root=PDF_DOWNLOAD_ROOT)
 
     # create embedding directory
     embed_persist_dir = join(embed_rootdir, arxiv_id)
     qa_path = embed_persist_dir + "_qa_history"
     os.makedirs(qa_path, exist_ok=True)
     # create embeddings
-    embeddings = OpenAIEmbeddings(model_name="text-embedding-ada-002")
+    embeddings = OpenAIEmbeddings(model="text-embedding-ada-002") # "text-embedding-3-small" is not found yet. 
     if os.path.exists(embed_persist_dir):
         print("Loading embeddings from", embed_persist_dir)
         vectordb = Chroma(persist_directory=embed_persist_dir, embedding_function=embeddings)
@@ -231,8 +240,8 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
         vectordb = Chroma.from_documents(pages, embedding=embeddings,
                                          persist_directory=embed_persist_dir, )
         vectordb.persist()
-
-    model_version = questionary.select("Select ChatGPT Model", choices=["gpt-3.5-turbo", "gpt-4-1106-preview"], default="gpt-3.5-turbo").ask()
+    print(f"Embeddings created. {vectordb._collection.count()} vectors loaded.")
+    model_version = questionary.select("Select ChatGPT Model", choices=["gpt-3.5-turbo", "ggpt-4-turbo-preview"], default="gpt-3.5-turbo").ask()
     chat_temperature = questionary.text("Sampling temperature for ChatGPT?", default="0.3").ask()
     chat_temperature = float(chat_temperature)
     # ref_maxlen = questionary.text("Max length of reference document?", default="300").ask()
