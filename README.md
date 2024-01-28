@@ -30,6 +30,7 @@ Environment variables:
 ## Requirements
 
 - Python 3.6+
+- pip install "pydantic<2"
 - If you want to save to Notion database, you need:
   - [Notion](https://www.notion.so/) account, API key
 - If you want to chat with the papers, you need:
