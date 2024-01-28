@@ -4,7 +4,10 @@ from os.path import join
 import textwrap
 from notion_client import Client
 
-def QA_notion_blocks(Q, A, refs=()):
+def wrap_breakline(s, width=80):
+    return "\n".join("\n".join(textwrap.wrap(x, width=width)) for x in s.splitlines())
+
+def QA_notion_blocks(Q, A, refs=(), max_len=1950):
     """
     notion.blocks.children.append(page_id, children=QA_notion_blocks("Q1", "A1"))
     notion.blocks.children.append(page_id, children=QA_notion_blocks("Q1", "A1", ("ref1", "ref2")))
@@ -16,7 +19,7 @@ def QA_notion_blocks(Q, A, refs=()):
     """
     ref_blocks = []
     for ref in refs:
-        ref_blocks.append({'quote': {"rich_text": [{"text": {"content": ref}}]}})
+        ref_blocks.append({'quote': {"rich_text": [{"text": {"content": ref[:max_len]}}]}})
     return [
         {'divider': {}},
         {'paragraph': {"rich_text": [{"text": {"content": f"Question:"}, 'annotations': {'bold': True}}, ]}},
@@ -104,7 +107,7 @@ def load_qa_history(qa_path):
 
 def print_qa_result(result, ref_maxlen=200, line_width=80):
     print("\nAnswer:")
-    print(textwrap.fill(result["answer"], line_width))
+    print(wrap_breakline(result["answer"], line_width))
     print("\nReference:")
     for refdoc in result['source_documents']:
         print("Ref doc:\n", refdoc.metadata)
