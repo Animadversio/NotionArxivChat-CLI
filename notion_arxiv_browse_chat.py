@@ -220,7 +220,7 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
     qa_path = embed_persist_dir + "_qa_history"
     os.makedirs(qa_path, exist_ok=True)
     # create embeddings
-    embeddings = OpenAIEmbeddings(model="text-embedding-ada-002") # "text-embedding-3-small" is not found yet. 
+    embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", disallowed_special=()) # "text-embedding-3-small" is not found yet. 
     if os.path.exists(embed_persist_dir):
         print("Loading embeddings from", embed_persist_dir)
         vectordb = Chroma(persist_directory=embed_persist_dir, embedding_function=embeddings)
@@ -368,5 +368,6 @@ while True:
     except KeyboardInterrupt as e:
         break
     except Exception as e:
-        # print(e)
+        print("Chat loop failed with exception:")
+        print(e)
         continue
