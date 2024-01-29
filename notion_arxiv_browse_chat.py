@@ -203,7 +203,7 @@ def arxiv_paper_download(arxiv_id, pdf_download_root="", text_splitter=default_s
         print("Saved to", join(pdf_download_root, f"{arxiv_id}.pdf"))
         loader = PyPDFLoader(join(pdf_download_root, f"{arxiv_id}.pdf"))
         # loader = PDFMinerLoader(pdf_path)
-        pages = loader.load_and_split()
+        pages = loader.load_and_split(text_splitter=text_splitter)
     return pages
 
 
@@ -224,6 +224,18 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
     if os.path.exists(embed_persist_dir):
         print("Loading embeddings from", embed_persist_dir)
         vectordb = Chroma(persist_directory=embed_persist_dir, embedding_function=embeddings)
+        if vectordb._collection.count() == 0:
+            print("No embeddings loaded, creating new embeddings...")
+            vectordb = Chroma.from_documents(pages, embedding=embeddings,
+                                             persist_directory=embed_persist_dir, )
+            vectordb.persist()
+    else:
+        print("Creating embeddings and saving to", embed_persist_dir)
+        vectordb = Chroma.from_documents(pages, embedding=embeddings,
+                                         persist_directory=embed_persist_dir, )
+        vectordb.persist()
+    print(f"Embeddings created. {vectordb._collection.count()} vectors loaded.")
+    if os.path.exists(qa_path):
         print("Loading Q&A history from", qa_path)
         chat_history, queries, results = load_qa_history(qa_path)
         while True:
@@ -235,12 +247,6 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
                 print("Q:", question)
                 result = results[queries.index(question)]
                 print_qa_result(result, )
-    else:
-        print("Creating embeddings and saving to", embed_persist_dir)
-        vectordb = Chroma.from_documents(pages, embedding=embeddings,
-                                         persist_directory=embed_persist_dir, )
-        vectordb.persist()
-    print(f"Embeddings created. {vectordb._collection.count()} vectors loaded.")
     model_version = questionary.select("Select ChatGPT Model", choices=["gpt-3.5-turbo", "ggpt-4-turbo-preview"], default="gpt-3.5-turbo").ask()
     chat_temperature = questionary.text("Sampling temperature for ChatGPT?", default="0.3").ask()
     chat_temperature = float(chat_temperature)
@@ -249,6 +255,7 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
     pdf_qa_new = ConversationalRetrievalChain.from_llm(
         ChatOpenAI(temperature=chat_temperature, model_name=model_version),
         vectordb.as_retriever(), return_source_documents=True, max_tokens_limit=2500)
+    # max_tokens_limit is the max token limit for the sum of all retrieved documents
 
     # Q&A loop with ChatOpenAI
     with get_openai_callback() as cb:
@@ -296,6 +303,7 @@ def notion_paper_chat(arxiv_id, pages=None, save_page_id=None, embed_rootdir="")
 # Ctrl-C in the navigation loop to exit and start a new query
 # Ctrl-C in the query prompt to exit the program
 # Up/Down to navigate through prompts and query history
+# main loop
 while True:
     try:
         cnt = 0
