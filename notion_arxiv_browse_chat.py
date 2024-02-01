@@ -181,29 +181,32 @@ def add_to_notion(paper: arxiv.arxiv.Result):
 def arxiv_paper_download(arxiv_id, pdf_download_root="", text_splitter=default_splitter):
     """Downloads the arxiv paper with the given arxiv_id, and returns the path to the downloaded pdf file."""
     ar5iv_url = f"https://ar5iv.labs.arxiv.org/html/{arxiv_id}"
+    arxiv_html_url = f"https://arxiv.org/html/{arxiv_id}"
     pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     # try getting ar5iv page first
-    r = requests.get(ar5iv_url, allow_redirects=True, )
-    if r.url.startswith("https://ar5iv.labs.arxiv.org/html"):
-        # if not redirected, then ar5iv page exists
-        # then download html to parse
-        print(f"Downloading {r.url}...")
-        open(join(pdf_download_root, f"{arxiv_id}.html"), 'wb').write(r.content)
-        print("Saved to", join(pdf_download_root, f"{arxiv_id}.html"))
-        loader = BSHTMLLoader(join(pdf_download_root, f"{arxiv_id}.html"),
-                              open_encoding="utf8", bs_kwargs={"features": "html.parser"})
-        pages = loader.load_and_split(text_splitter=text_splitter)
-    else:
-        # if redirected, then ar5iv page does not exist
-        # save pdf instead
-        print(f"redirected to {r.url}")
-        print("ar5iv not found, downloading pdf instead ")
-        r = requests.get(pdf_url, allow_redirects=True, )
-        open(join(pdf_download_root, f"{arxiv_id}.pdf"), 'wb').write(r.content)
-        print("Saved to", join(pdf_download_root, f"{arxiv_id}.pdf"))
-        loader = PyPDFLoader(join(pdf_download_root, f"{arxiv_id}.pdf"))
-        # loader = PDFMinerLoader(pdf_path)
-        pages = loader.load_and_split(text_splitter=text_splitter)
+    for url in [ar5iv_url, arxiv_html_url]:
+        r = requests.get(url, allow_redirects=True, )
+        if r.url.startswith(url.rsplit('/', 1)[0]):
+            # if not redirected, then ar5iv page exists
+            # then download html to parse
+            print(f"Downloading {r.url}...")
+            open(join(pdf_download_root, f"{arxiv_id}.html"), 'wb').write(r.content)
+            print("Saved to", join(pdf_download_root, f"{arxiv_id}.html"))
+            loader = BSHTMLLoader(join(pdf_download_root, f"{arxiv_id}.html"),
+                                  open_encoding="utf8", bs_kwargs={"features": "html.parser"})
+            pages = loader.load_and_split(text_splitter=text_splitter)
+            return pages
+
+    # if redirected, then ar5iv page does not exist
+    # save pdf instead
+    print(f"redirected to {r.url}")
+    print("ar5iv not found, downloading pdf instead ")
+    r = requests.get(pdf_url, allow_redirects=True, )
+    open(join(pdf_download_root, f"{arxiv_id}.pdf"), 'wb').write(r.content)
+    print("Saved to", join(pdf_download_root, f"{arxiv_id}.pdf"))
+    loader = PyPDFLoader(join(pdf_download_root, f"{arxiv_id}.pdf"))
+    # loader = PDFMinerLoader(pdf_path)
+    pages = loader.load_and_split(text_splitter=text_splitter)
     return pages
 
 
