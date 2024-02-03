@@ -44,6 +44,7 @@ QBIO_CLASSES = [
 # Which categories do we search
 CLASSES = CS_CLASSES + MATH_CLASSES + QBIO_CLASSES
 
+ABSTR_EMBED_DIR = "/Users/binxuwang/Library/CloudStorage/OneDrive-HarvardUniversity/openai-emb-database/Embed_arxiv_abstr"
 
 def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_dir, 
                 max_paper_num=20000, embed_batch_size=100, print_details=False):
@@ -316,18 +317,6 @@ def generate_publication_time_histograms(paper_collection, database_name, search
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Prepare the ArXiv Embedding Database")
-    parser.add_argument("--database_name", type=str, required=True, help="Name of the database")
-    parser.add_argument("--search_query", type=str, default="", help="Search query for fetching papers")
-    parser.add_argument("--max_paper_num", type=int, default=20000, help="Maximum number of papers to fetch")
-    parser.add_argument("--embed_batch_size", type=int, default=100, help="Batch size for embedding papers")
-    parser.add_argument("--print_details", action='store_true', help="Print detailed information during processing")
-    args = parser.parse_args()
-    
-    # set the directory for saving the database
-    # abstr_embed_dir = "/Users/binxuwang/Library/CloudStorage/OneDrive-HarvardUniversity/openai-emb-database/Embed_arxiv_abstr"
-    # Name for saving the database
-    # search_query = 'cat:cs.* AND all:diffusion OR all:score-based'
     query_base = {"diffusion_10k": 'cat:cs.* AND all:diffusion OR all:score-based',
                   "GAN_6k": 'cat:cs.* AND all:"generative adversarial network" OR all:GAN',
                   "VAE_2k": 'cat:cs.* AND all:"variational autoencoder" OR all:VAE',
@@ -335,12 +324,27 @@ def main():
                   "normflow_800": 'cat:cs.* AND all:"normalizing flow"',
                   "LLM_18k": 'cat:cs.* AND all:"language model" OR all:LLM'}
     
+    parser = argparse.ArgumentParser(description="Prepare the ArXiv Embedding Database", 
+                        epilog=f'Existing databases names {[*query_base.keys()]}')
+    parser.add_argument("--database_name", type=str, required=True, help="Name of the database")
+    parser.add_argument("--search_query", type=str, default="", help="Search query for fetching papers")
+    parser.add_argument("--max_paper_num", type=int, default=20000, help="Maximum number of papers to fetch")
+    parser.add_argument("--embed_batch_size", type=int, default=100, help="Batch size for embedding papers")
+    parser.add_argument("--print_details", action='store_true', help="Print detailed information during processing")
+    args = parser.parse_args()
+    # set the directory for saving the database
+    # Name for saving the database
     if args.search_query == "" and args.database_name in query_base:
         args.search_query = query_base[args.database_name]
-    
-    # Assuming you have a function in your script that can be called like this:
+    elif args.search_query == "" and args.database_name not in query_base:
+        print("Error: The database_name is not in the default list!!! and search_query is not provided.")
+        return
+    # TODO: update the query_base when new database is created
+    # assume we are using CLI, then use AGG backend
+    plt.switch_backend('agg')
     prepare_arxiv_embedding_database(database_name=args.database_name,
                                      search_query=args.search_query,
+                                     abstr_embed_dir=ABSTR_EMBED_DIR,
                                      max_paper_num=args.max_paper_num,
                                      embed_batch_size=args.embed_batch_size,
                                      print_details=args.print_details)
