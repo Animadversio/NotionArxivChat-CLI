@@ -44,33 +44,9 @@ QBIO_CLASSES = [
 # Which categories do we search
 CLASSES = CS_CLASSES + MATH_CLASSES + QBIO_CLASSES
 
-#%
-# set the directory for saving the database
-abstr_embed_dir = "/Users/binxuwang/Library/CloudStorage/OneDrive-HarvardUniversity/openai-emb-database/Embed_arxiv_abstr"
-# Name for saving the database
-# database_name = "diffusion_7k"
-# database_name = "LLM_5k"
-# database_name = "GAN_6k"
-# database_name = "VAE_2k"
-# database_name = "flow_100"
-# database_name = "normflow_800"
-# database_name = "LLM_18k"
-database_name = "diffusion_10k"
-# Define the search query
-# You can change this to a specific field or topic
-# search_query = "cat:cs.* AND all:diffusion OR all:score-based"  # You can change this to a specific field or topic
-# search_query = 'cat:cs.* AND all:"generative adversarial network" OR all:GAN'
-# search_query = 'cat:cs.* AND all:"variational autoencoder" OR all:VAE'
-# search_query = 'cat:cs.* AND all:"flow matching"'
-# search_query = 'cat:cs.* AND all:"normalizing flow"'
-# search_query = 'cat:cs.* AND all:"language model" OR all:LLM'
-search_query = 'cat:cs.* AND all:diffusion OR all:score-based'
-MAX_PAPER_NUM = 20000
-EMBED_BATCH_SIZE = 100
-print_details = False
 
-
-def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_dir, max_paper_num=20000, embed_batch_size=100, print_details=False):
+def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_dir, 
+                max_paper_num=20000, embed_batch_size=100, print_details=False):
     """
     Prepares the ArXiv embedding database by fetching papers based on a search query, 
     embedding the abstracts, and saving the results.
@@ -108,7 +84,7 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
     # Fetch papers based on the search query
     search = arxiv.Search(
         query=search_query,
-        max_results=MAX_PAPER_NUM,
+        max_results=max_paper_num,
         sort_by=arxiv.SortCriterion.SubmittedDate,
         sort_order=arxiv.SortOrder.Descending,
     )
@@ -158,8 +134,8 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
         api_key=os.environ.get("OPENAI_API_KEY"),
     )
     update_embedding_col = []
-    for i in tqdm(range(0, len(update_embedstr_col), EMBED_BATCH_SIZE)):
-        embedstr_batch = update_embedstr_col[i:i + EMBED_BATCH_SIZE]
+    for i in tqdm(range(0, len(update_embedstr_col), embed_batch_size)):
+        embedstr_batch = update_embedstr_col[i:i + embed_batch_size]
         response = client.embeddings.create(
             input=embedstr_batch,
             model="text-embedding-ada-002"
@@ -257,7 +233,7 @@ def initialize_or_load_database(abstr_embed_dir, database_name):
     return paper_collection, embedding_arr
 
 
-def fetch_papers(search_query, max_paper_num, existing_indices=()):
+def fetch_papers(search_query, max_paper_num, existing_indices=(), print_details=False):
     # Function to fetch papers based on the search_query
     # Returns: List of fetched papers not already in existing_papers
     # Fetch papers based on the search query
@@ -338,7 +314,39 @@ def generate_publication_time_histograms(paper_collection, database_name, search
                         save_suffix="_recent2022", bins=200)
 
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Prepare the ArXiv Embedding Database")
+    parser.add_argument("--database_name", type=str, required=True, help="Name of the database")
+    parser.add_argument("--search_query", type=str, default="", help="Search query for fetching papers")
+    parser.add_argument("--max_paper_num", type=int, default=20000, help="Maximum number of papers to fetch")
+    parser.add_argument("--embed_batch_size", type=int, default=100, help="Batch size for embedding papers")
+    parser.add_argument("--print_details", action='store_true', help="Print detailed information during processing")
+    args = parser.parse_args()
+    
+    # set the directory for saving the database
+    # abstr_embed_dir = "/Users/binxuwang/Library/CloudStorage/OneDrive-HarvardUniversity/openai-emb-database/Embed_arxiv_abstr"
+    # Name for saving the database
+    # search_query = 'cat:cs.* AND all:diffusion OR all:score-based'
+    query_base = {"diffusion_10k": 'cat:cs.* AND all:diffusion OR all:score-based',
+                  "GAN_6k": 'cat:cs.* AND all:"generative adversarial network" OR all:GAN',
+                  "VAE_2k": 'cat:cs.* AND all:"variational autoencoder" OR all:VAE',
+                  "flow_100": 'cat:cs.* AND all:"flow matching"',
+                  "normflow_800": 'cat:cs.* AND all:"normalizing flow"',
+                  "LLM_18k": 'cat:cs.* AND all:"language model" OR all:LLM'}
+    
+    if args.search_query == "" and args.database_name in query_base:
+        args.search_query = query_base[args.database_name]
+    
+    # Assuming you have a function in your script that can be called like this:
+    prepare_arxiv_embedding_database(database_name=args.database_name,
+                                     search_query=args.search_query,
+                                     max_paper_num=args.max_paper_num,
+                                     embed_batch_size=args.embed_batch_size,
+                                     print_details=args.print_details)
 
+if __name__ == "__main__":
+    main()
 
 
 
