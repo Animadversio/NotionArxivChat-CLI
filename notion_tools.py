@@ -17,15 +17,30 @@ def QA_notion_blocks(Q, A, refs=(), max_len=1950):
     :param refs: list or tuple of str references
     :return:
     """
+    question_blocks = []
+    for i in range(0, len(Q), max_len):
+        question_blocks.append(
+        {'paragraph': {"rich_text": [{"text": {"content": Q[i:i+max_len]}}]}})
+    ans_blocks = []
+    # split the answer into multiple blocks with max_len, split only by \n
+    # This is to avoid too long block, which is not allowed by Notion API. 
+    for paragraph in A.split("\n"):
+        for i in range(0, len(paragraph), max_len):
+            ans_blocks.append(
+        {'paragraph': {"rich_text": [{"text": {"content": paragraph[i:i+max_len]}}]}})
+    
     ref_blocks = []
     for ref in refs:
         ref_blocks.append({'quote': {"rich_text": [{"text": {"content": ref[:max_len]}}]}})
+    
     return [
         {'divider': {}},
         {'paragraph': {"rich_text": [{"text": {"content": f"Question:"}, 'annotations': {'bold': True}}, ]}},
-        {'paragraph': {"rich_text": [{"text": {"content": Q}}]}},
+        # {'paragraph': {"rich_text": [{"text": {"content": Q}}]}},
+        *question_blocks,
         {'paragraph': {"rich_text": [{"text": {"content": f"Answer:"}, 'annotations': {'bold': True}}, ]}},
-        {'paragraph': {"rich_text": [{"text": {"content": A}}]}},
+        # {'paragraph': {"rich_text": [{"text": {"content": A}}]}},
+        *ans_blocks,
         {'toggle': {"rich_text": [{"text": {"content": f"Reference:"}, 'annotations': {'bold': True}}, ],
                     "children": ref_blocks, }},
     ]
