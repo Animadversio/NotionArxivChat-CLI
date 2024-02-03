@@ -143,14 +143,20 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
         )
         update_embedding_col.extend(response.data)
 
-    update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
-    #%%
-    # format as array
-    if embedding_arr is not None and len(update_embedding_arr) > 0:
-        embedding_arr = np.concatenate([embedding_arr, update_embedding_arr], axis=0)
+    if len(update_embedding_col) > 0:
+        # format as array
+        update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
     else:
-        embedding_arr = update_embedding_arr
-    
+        update_embedding_arr = []
+    #%%
+    # if there is any new entries, then update the embedding_arr
+    if len(update_embedding_col) > 0:
+        if embedding_arr is not None:
+            embedding_arr = np.concatenate([embedding_arr, update_embedding_arr], axis=0)
+        else:
+            # if the embedding_arr is None, then write the update_embedding_arr to the embedding_arr
+            embedding_arr = update_embedding_arr
+        
     if not len(paper_collection) == len(embedding_arr):
         print("Warning: The number of papers and embeddings do not match!!!")
     #%%
@@ -332,16 +338,33 @@ def main():
     parser.add_argument("--embed_batch_size", type=int, default=100, help="Batch size for embedding papers")
     parser.add_argument("--print_details", action='store_true', help="Print detailed information during processing")
     args = parser.parse_args()
+    plt.switch_backend('agg')
     # set the directory for saving the database
     # Name for saving the database
-    if args.search_query == "" and args.database_name in query_base:
-        args.search_query = query_base[args.database_name]
+    if args.database_name == "all":
+        print("Upgrading all the arxiv databases... ")
+        print("The databases are: ",)
+        for name, query in query_base.items():
+            print(name, ":", query)
+        print("\nStart Fetching all the databases... ")
+        for name, query in query_base.items():
+            prepare_arxiv_embedding_database(database_name=name,
+                                     search_query=query,
+                                     abstr_embed_dir=ABSTR_EMBED_DIR,
+                                     max_paper_num=args.max_paper_num,
+                                     embed_batch_size=args.embed_batch_size,
+                                     print_details=args.print_details)
+        print("All the databases are fetched and saved.")
+        return
     elif args.search_query == "" and args.database_name not in query_base:
         print("Error: The database_name is not in the default list!!! and search_query is not provided.")
         return
+    elif args.search_query == "" and args.database_name in query_base:
+        print(f"Using the default search query for {args.database_name}: {query_base[args.database_name]}")
+        args.search_query = query_base[args.database_name]
+    
     # TODO: update the query_base when new database is created
     # assume we are using CLI, then use AGG backend
-    plt.switch_backend('agg')
     prepare_arxiv_embedding_database(database_name=args.database_name,
                                      search_query=args.search_query,
                                      abstr_embed_dir=ABSTR_EMBED_DIR,
