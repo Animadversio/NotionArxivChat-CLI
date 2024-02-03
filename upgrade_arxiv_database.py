@@ -65,50 +65,12 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
         os.makedirs(abstr_embed_dir)
 
     # Initialize or load the database and embedding array
-    if os.path.exists(join(abstr_embed_dir, f"arxiv_embedding_arr_{database_name}.pkl")):
-        print(f"Database {database_name} already exists, loading the paper and embedding array")
-        embedding_arr, paper_collection = pkl.load(open(join(abstr_embed_dir, f"arxiv_embedding_arr_{database_name}.pkl"), "rb"))  
-        print(f"{len(paper_collection)} papers with embedding shape {embedding_arr.shape} loaded.")
-    elif os.path.exists(join(abstr_embed_dir, f"arxiv_collection_{database_name}.pkl")):
-        print(f"Database {database_name} already exists, loading the database")
-        print("Embedding array does not exist, start fetching papers")
-        paper_collection = pkl.load(open(join(abstr_embed_dir, f"arxiv_collection_{database_name}.pkl"), "rb"))
-        embedding_arr = None
-        print(f"{len(paper_collection)} papers with loaded. No embedding found")
-    else:
-        print(f"Database {database_name} does not exist, start fetching papers")
-        paper_collection = []
-        embedding_arr = None
-        
+    paper_collection, embedding_arr = initialize_or_load_database(abstr_embed_dir, database_name)
     arxiv_indices = [paper.entry_id.strip("http://arxiv.org/abs/") for paper in paper_collection]
     
     # Fetch papers based on the search query
-    search = arxiv.Search(
-        query=search_query,
-        max_results=max_paper_num,
-        sort_by=arxiv.SortCriterion.SubmittedDate,
-        sort_order=arxiv.SortOrder.Descending,
-    )
-    #%%
-    # Print titles and abstracts of the latest papers
-    idx = 0
-    update_paper_collection = []
-    for paper in arxiv.Client(page_size=100, delay_seconds=5.0, num_retries=50).results(search):
-        id_pure = paper.entry_id.strip("http://arxiv.org/abs/")
-        if id_pure in arxiv_indices:
-            print(f"Skip [{id_pure}] ({paper.published.date()}) already in database, stop upgrade.",)
-            print(f"{idx} number of papers added to the database.")
-            break
-        update_paper_collection.append(paper)
-        print(f"{idx} [{id_pure}] ({paper.published.date()})",
-            paper.title)
-        idx += 1
-        if print_details:
-            print("Abstract:", paper.summary)
-            print("Categories:", paper.categories, end=" ")
-            print("ID:", paper.entry_id, end=" ")
-            print("-" * 80)
-    #%%
+    update_paper_collection = fetch_papers(search_query, max_paper_num, arxiv_indices, print_details=print_details)
+
     paper_collection = paper_collection + update_paper_collection
     pkl.dump(paper_collection, open(join(abstr_embed_dir, f"arxiv_collection_{database_name}.pkl"), "wb"))
     df = pd.DataFrame(paper_collection)
@@ -128,29 +90,10 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
     #%%
     # Input continue
     input("Press Enter to continue embedding the updated files...")
-    update_embedstr_col = [entry2string(paper) for paper in update_paper_collection]
-    # embed all the abstracts
-    client = openai.OpenAI(
-        # This is the default and can be omitted
-        api_key=os.environ.get("OPENAI_API_KEY"),
-    )
-    update_embedding_col = []
-    for i in tqdm(range(0, len(update_embedstr_col), embed_batch_size)):
-        embedstr_batch = update_embedstr_col[i:i + embed_batch_size]
-        response = client.embeddings.create(
-            input=embedstr_batch,
-            model="text-embedding-ada-002"
-        )
-        update_embedding_col.extend(response.data)
-
-    if len(update_embedding_col) > 0:
-        # format as array
-        update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
-    else:
-        update_embedding_arr = np.empty((0,0),) # TODO: add the 2nd dimension. 
-    #%%
+    # # Generate embeddings for the updated collection
+    update_embedding_arr = generate_embeddings(update_paper_collection, embed_batch_size)
     # if there is any new entries, then update the embedding_arr
-    if len(update_embedding_col) > 0:
+    if len(update_paper_collection) > 0:
         if embedding_arr is not None:
             embedding_arr = np.concatenate([embedding_arr, update_embedding_arr], axis=0)
         else:
@@ -159,7 +102,7 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
         
     if not len(paper_collection) == len(embedding_arr):
         print("Warning: The number of papers and embeddings do not match!!!")
-    #%%
+    # Save the updated embeddings and paper collection
     pkl.dump([embedding_arr, paper_collection],
             open(join(abstr_embed_dir, f"arxiv_embedding_arr_{database_name}.pkl"), "wb"))
     print(f"Database {database_name} updated with {len(update_paper_collection)} papers and saved.")
