@@ -147,7 +147,7 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
         # format as array
         update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
     else:
-        update_embedding_arr = []
+        update_embedding_arr = np.empty((0,0),) # TODO: add the 2nd dimension. 
     #%%
     # if there is any new entries, then update the embedding_arr
     if len(update_embedding_col) > 0:
@@ -295,7 +295,11 @@ def generate_embeddings(paper_collection, batch_size):
         )
         update_embedding_col.extend(response.data)
 
-    update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
+    if len(update_embedding_col) > 0:
+        # format as array
+        update_embedding_arr = np.stack([embed.embedding for embed in update_embedding_col])
+    else:
+        update_embedding_arr = np.empty((0,0),) # TODO: add the 2nd dimension. 
     return update_embedding_arr
     
 
