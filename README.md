@@ -7,6 +7,12 @@ A few CLI tools to immersively, browse, read Arxiv paper, save to notion, chat w
 Resulting Notion database:
 ![](media/Notion_record.png)
 
+## Updates 
+* Feb.1st, 2024 updates. 
+  * Add functionality to fetch and build arxiv abstract database `upgrade_arxiv_database.py`
+  * Support semantic vector search for arxiv abstracts and chat `notion_arxiv_vector_search.py`
+  * Notion saving failure bug fixed. 
+
 ## Usage
 * `arxiv_browser.py` - simple CLI tool to browse Arxiv papers, search with arxiv query string; read abstracts in a terminal. 
   * Details for query string can be found [here](https://info.arxiv.org/help/api/user-manual.html#Appendices)
