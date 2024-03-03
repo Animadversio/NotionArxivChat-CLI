@@ -47,7 +47,8 @@ CLASSES = CS_CLASSES + MATH_CLASSES + QBIO_CLASSES
 ABSTR_EMBED_DIR = "/Users/binxuwang/Library/CloudStorage/OneDrive-HarvardUniversity/openai-emb-database/Embed_arxiv_abstr"
 
 def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_dir, 
-                max_paper_num=20000, embed_batch_size=100, print_details=False):
+                max_paper_num=20000, embed_batch_size=100, print_details=False,
+                no_embed=False):
     """
     Prepares the ArXiv embedding database by fetching papers based on a search query, 
     embedding the abstracts, and saving the results.
@@ -87,7 +88,9 @@ def prepare_arxiv_embedding_database(database_name, search_query, abstr_embed_di
     paper_time_histogram(paper_collection, database_name, search_query, abstr_embed_dir,
                         time_limit=(datetime.datetime(2022, 1, 1), datetime.datetime.today()), 
                         save_suffix="_recent2022", bins=200)
-    #%%
+    if no_embed:
+        print(f"Database {database_name} updated with {len(update_paper_collection)} papers and saved.")
+        return paper_collection, embedding_arr
     # Input continue
     input("Press Enter to continue embedding the updated files...")
     # # Generate embeddings for the updated collection
@@ -282,6 +285,7 @@ def main():
     parser.add_argument("--database_name", type=str, required=True, help="Name of the database")
     parser.add_argument("--search_query", type=str, default="", help="Search query for fetching papers")
     parser.add_argument("--max_paper_num", type=int, default=20000, help="Maximum number of papers to fetch")
+    parser.add_argument("--no_embed", action='store_true', help="Do not embed the papers")
     parser.add_argument("--embed_batch_size", type=int, default=100, help="Batch size for embedding papers")
     parser.add_argument("--print_details", action='store_true', help="Print detailed information during processing")
     args = parser.parse_args()
@@ -317,7 +321,8 @@ def main():
                                      abstr_embed_dir=ABSTR_EMBED_DIR,
                                      max_paper_num=args.max_paper_num,
                                      embed_batch_size=args.embed_batch_size,
-                                     print_details=args.print_details)
+                                     print_details=args.print_details,
+                                     no_embed=args.no_embed)
 
 if __name__ == "__main__":
     main()

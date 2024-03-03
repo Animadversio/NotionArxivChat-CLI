@@ -12,6 +12,8 @@ Resulting Notion database:
   * Add functionality to fetch and build arxiv abstract database `upgrade_arxiv_database.py`
   * Support semantic vector search for arxiv abstracts and chat `notion_arxiv_vector_search.py`
   * Notion saving failure bug fixed. 
+* Mar. 2nd 2024 updates. 
+  * Add pure Arxiv keyword paper scrapting CLI
 
 ## Usage
 * `arxiv_browser.py` - simple CLI tool to browse Arxiv papers, search with arxiv query string; read abstracts in a terminal. 
