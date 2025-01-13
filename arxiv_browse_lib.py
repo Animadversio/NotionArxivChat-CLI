@@ -7,17 +7,17 @@ import requests
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 try:
-    from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
-    from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
-    from langchain.vectorstores import Chroma  # for the vectorization part
-    from langchain.chat_models import ChatOpenAI
-    from langchain.callbacks import get_openai_callback
-except:
     from langchain_community.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader
     from langchain_community.embeddings import OpenAIEmbeddings
     from langchain_community.vectorstores import Chroma
     from langchain_community.chat_models import ChatOpenAI
     from langchain_community.callbacks import get_openai_callback
+except:
+    from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
+    from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
+    from langchain.vectorstores import Chroma  # for the vectorization part
+    from langchain.chat_models import ChatOpenAI
+    from langchain.callbacks import get_openai_callback
 from notion_tools import QA_notion_blocks, clean_metadata, print_entries, save_qa_history, load_qa_history, print_qa_result
 
 
