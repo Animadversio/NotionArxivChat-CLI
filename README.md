@@ -16,6 +16,7 @@ Resulting Notion database:
   * Add pure Arxiv keyword paper scrapting CLI
 * July 22nd 2025 updates. 
   * Add integration to Zotero, enabling direct adding arxiv papers to Zotero via `pyzotero`. 
+  * Add collection selection functionality in CLI. 
 
 ## Usage
 * `arxiv_browser.py` - simple CLI tool to browse Arxiv papers, search with arxiv query string; read abstracts in a terminal. 

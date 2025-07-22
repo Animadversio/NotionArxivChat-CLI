@@ -52,6 +52,13 @@ if "ZOTERO_API" in os.environ:
     zot = zotero.Zotero(library_id, library_type, ZOTERO_API) 
     save2zotero = True
     print(f"Zotero integration enabled. Zotero API key: **********")
+    print("Fetching Zotero collections...")
+    zot_collection = zot.collections()
+    zot_collection_dict = {}
+    for item in zot_collection:
+        print(f"Key: {item['key']}, Name: {item['data']['name']}, Items: {item['meta']['numItems']}")
+        zot_collection_dict[item['data']['name']] = item['key']
+    zot_collection_dict
 else:
     print("Please set the ZOTERO_API environment variable.")
     save2zotero = False
@@ -86,6 +93,12 @@ while True:
                 page_id, _ = add_to_notion(notion, database_id, paper)
                 if save2zotero:
                     zot_item = add_to_zotero(zot, paper)
+                    if zot_item is not None:
+                        print("Adding to Zotero collection...")
+                        collection_name = questionary.select("Select collection:", 
+                                        choices=list(zot_collection_dict.keys()), default="Diffusion").ask()
+                        success = zot.addto_collection(zot_collection_dict[collection_name], zot_item)
+                        print("Adding to collection success:", success)
                 if questionary.confirm("Q&A Chatting with this file?").ask():
                     pages = arxiv_paper_download(arxiv_id, pdf_download_root=PDF_DOWNLOAD_ROOT)
                     notion_paper_chat(arxiv_id=arxiv_id, pages=pages, save_page_id=page_id,
@@ -124,6 +137,12 @@ while True:
                         if save2zotero:
                             print("Adding to Zotero...")
                             zot_item = add_to_zotero(zot, paper)
+                            if zot_item is not None:
+                                print("Adding to Zotero collection...")
+                                collection_name = questionary.select("Select collection:", 
+                                    choices=list(zot_collection_dict.keys()), default="Diffusion").ask()
+                                success = zot.addto_collection(zot_collection_dict[collection_name], zot_item)
+                                print("Adding to collection success:", success)
                         if questionary.confirm("Q&A Chatting with this file?").ask():
                             pages = arxiv_paper_download(arxiv_id, pdf_download_root=PDF_DOWNLOAD_ROOT)
                             notion_paper_chat(arxiv_id=arxiv_id, pages=pages, save_page_id=page_id,

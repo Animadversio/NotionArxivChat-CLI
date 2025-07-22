@@ -119,7 +119,7 @@ def add_to_zotero(zot: zotero.Zotero, paper: arxiv.arxiv.Result, item_type='prep
         if len(output["successful"]) > 0:
             # print(output["successful"][0]["key"])
             print("Successfully added to Zotero!")
-            zot_item = None
+            zot_item = output["successful"]['0']
             # slightly hacky but usually works. 
             # this is not working for some reason. !!! TODO: fix this. 
             # zot_item = zot.top(limit=1)
@@ -128,11 +128,11 @@ def add_to_zotero(zot: zotero.Zotero, paper: arxiv.arxiv.Result, item_type='prep
             #     zot_item = None
             # else:
             #     zot_item = zot_item[0]
-            #     if zot_item['key'] != output["successful"][0]["key"]:
+            #     if zot_item['key'] != output["successful"]['0']["key"]:
             #         print("Zotero item key does not match the created item key!!! Returning None")
             #         zot_item = None
         else:
             print("Failed to add to Zotero!!")
-            print(output["failed"][0]["error"])
+            print(output["failed"]['0']["error"])
             zot_item = None
     return zot_item
