@@ -7,21 +7,21 @@ import requests
 from langchain.chains import ConversationalRetrievalChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 try:
-    from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
-    from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
-    from langchain.vectorstores import Chroma  # for the vectorization part
-    from langchain.chat_models import ChatOpenAI
-    from langchain.callbacks import get_openai_callback
-except:
     from langchain_community.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader
     from langchain_community.embeddings import OpenAIEmbeddings
     from langchain_community.vectorstores import Chroma
     from langchain_community.chat_models import ChatOpenAI
     from langchain_community.callbacks import get_openai_callback
+except:
+    from langchain.document_loaders import PDFMinerLoader, PyPDFLoader, BSHTMLLoader, UnstructuredURLLoader # for loading the pdf
+    from langchain.embeddings import OpenAIEmbeddings  # for creating embeddings
+    from langchain.vectorstores import Chroma  # for the vectorization part
+    from langchain.chat_models import ChatOpenAI
+    from langchain.callbacks import get_openai_callback
 from notion_tools import QA_notion_blocks, clean_metadata, print_entries, save_qa_history, load_qa_history, print_qa_result
 
 
-def print_arxiv_entry(paper: arxiv.arxiv.Result):
+def print_arxiv_entry(paper: arxiv.Result):
     title = paper.title
     authors = [author.name for author in paper.authors]
     pubyear = paper.published
@@ -69,7 +69,7 @@ def blocks2text(blocks):
             print(block["type"])
 
 
-def arxiv_entry2page_blocks(paper: arxiv.arxiv.Result):
+def arxiv_entry2page_blocks(paper: arxiv.Result):
     title = paper.title
     authors = [author.name for author in paper.authors]
     pubyear = paper.published
@@ -106,7 +106,7 @@ def arxiv_entry2page_blocks(paper: arxiv.arxiv.Result):
     return page_prop, content_block
 
 
-def arxiv_entry2page(notion_client, database_id, paper: arxiv.arxiv.Result):
+def arxiv_entry2page(notion_client, database_id, paper: arxiv.Result):
     """Creates a new page in the Notion database with the arxiv entry. Returns the page_id and page."""
     page_prop, content_block = arxiv_entry2page_blocks(paper)
     new_page = notion_client.pages.create(parent={"database_id": database_id}, properties=page_prop)
@@ -114,7 +114,7 @@ def arxiv_entry2page(notion_client, database_id, paper: arxiv.arxiv.Result):
     return new_page["id"], new_page
 
 
-def add_to_notion(notion_client, database_id, paper: arxiv.arxiv.Result, print_existing=False):
+def add_to_notion(notion_client, database_id, paper: arxiv.Result, print_existing=False):
     """Higher level function to add the arxiv entry to the Notion database.
     
     If the entry already exists, it will skip adding the entry and return the page_id and page.
