@@ -14,6 +14,8 @@ Resulting Notion database:
   * Notion saving failure bug fixed. 
 * Mar. 2nd 2024 updates. 
   * Add pure Arxiv keyword paper scrapting CLI
+* July 22nd 2025 updates. 
+  * Add integration to Zotero, enabling direct adding arxiv papers to Zotero via `pyzotero`. 
 
 ## Usage
 * `arxiv_browser.py` - simple CLI tool to browse Arxiv papers, search with arxiv query string; read abstracts in a terminal. 

@@ -24,6 +24,7 @@ except:
     from langchain_community.callbacks import get_openai_callback
 from notion_tools import QA_notion_blocks, clean_metadata, print_entries, save_qa_history, load_qa_history, print_qa_result
 from arxiv_browse_lib import add_to_notion, notion_paper_chat, fetch_K_results, print_arxiv_entry, arxiv_paper_download
+from zotero_lib import add_to_zotero, check_existing_title_in_zotero, convert_arxiv_result_to_zotero_item
 # file to save the arxiv query history
 history = FileHistory("notion_arxiv_history.txt")
 session = PromptSession(history=history)
@@ -55,6 +56,20 @@ else:
     print("Please set the NOTION_TOKEN environment variable.")
     save2notion = False
 
+if "ZOTERO_API" in os.environ:
+    from pyzotero import zotero
+    ZOTERO_API = os.environ["ZOTERO_API"]
+    library_id = "12064854"
+    library_type = "user"
+    zot = zotero.Zotero(library_id, library_type, ZOTERO_API) 
+    save2zotero = True
+    print(f"Zotero integration enabled. Zotero API key: **********")
+else:
+    print("Please set the ZOTERO_API environment variable.")
+    save2zotero = False
+    zot = None
+
+
 default_splitter = RecursiveCharacterTextSplitter(
     chunk_size=2000, chunk_overlap=200)
 
@@ -81,6 +96,8 @@ while True:
             # Add the entry if confirmed
             if questionary.confirm("Add this entry?").ask():
                 page_id, _ = add_to_notion(notion, database_id, paper)
+                if save2zotero:
+                    zot_item = add_to_zotero(zot, paper)
                 if questionary.confirm("Q&A Chatting with this file?").ask():
                     pages = arxiv_paper_download(arxiv_id, pdf_download_root=PDF_DOWNLOAD_ROOT)
                     notion_paper_chat(arxiv_id=arxiv_id, pages=pages, save_page_id=page_id,
@@ -116,6 +133,9 @@ while True:
                     if questionary.confirm("Add this entry?").ask():
                         # Add the entry if confirmed
                         page_id, _ = add_to_notion(notion, database_id, paper)
+                        if save2zotero:
+                            print("Adding to Zotero...")
+                            zot_item = add_to_zotero(zot, paper)
                         if questionary.confirm("Q&A Chatting with this file?").ask():
                             pages = arxiv_paper_download(arxiv_id, pdf_download_root=PDF_DOWNLOAD_ROOT)
                             notion_paper_chat(arxiv_id=arxiv_id, pages=pages, save_page_id=page_id,
